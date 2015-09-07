@@ -72,8 +72,10 @@ class Vertex {
 			while (iter.hasNext()) {
 				v = iter.next();
 				if (!v.listed) {
+				    synchronized(worklist) {
 					worklist.addLast(v);
 					v.listed = true;
+				    }
 				}
 			}
 		}
@@ -165,7 +167,7 @@ class Dataflow {
 		}
 	}
 
-	public static void liveness(Vertex vertex[])
+    public static void liveness(Vertex vertex[], int nthread) throws InterruptedException
 	{
 		Vertex			u;
 		Vertex			v;
@@ -184,17 +186,23 @@ class Dataflow {
 			vertex[i].listed = true;
 		}
 
-		while (!worklist.isEmpty()) {
-			u = worklist.remove();
-			u.listed = false;
-			u.computeIn(worklist);
+		LinkedList<Worker> workers = new LinkedList<>();
+
+		for (i = 0; i < nthread; ++i) {
+		    Worker w = new Worker(worklist);
+		    w.start();
+		    workers.add(w);
 		}
+		for (Worker w : workers) {
+		    w.join();
+		}
+
 		end = System.nanoTime();
 
 		System.out.println("T = " + (end-begin)/1e9 + " s");
 	}
 
-	public static void main(String[] args)
+	public static void main(String[] args) throws InterruptedException
 	{
 		int	i;
 		int	nsym;
@@ -227,10 +235,32 @@ class Dataflow {
 
 		generateCFG(vertex, maxsucc, r);
 		generateUseDef(vertex, nsym, nactive, r);
-		liveness(vertex);
+		liveness(vertex, nthread);
 
 		if (print)
 			for (i = 0; i < vertex.length; ++i)
 				vertex[i].print();
 	}
+}
+
+class Worker extends Thread {
+    LinkedList<Vertex> worklist;
+
+    public Worker(LinkedList<Vertex> worklist) {
+	this.worklist = worklist;
+    }
+
+    @Override public void run() {
+	Vertex u;
+	while (true) {
+	    synchronized(worklist) {
+		if (worklist.isEmpty()) {
+		    break;
+		}
+		u = worklist.remove();
+		u.listed = false;
+	    }
+	    u.computeIn(worklist);
+	}
+    }
 }
