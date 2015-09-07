@@ -43,7 +43,7 @@ class Vertex {
 		def	= new BitSet();
 	}
 
-	void computeIn(LinkedList<Vertex> worklist)
+	void computeIn(WorkList worklist)
 	{
 		int			i;
 		BitSet			old;
@@ -72,10 +72,7 @@ class Vertex {
 			while (iter.hasNext()) {
 				v = iter.next();
 				if (!v.listed) {
-				    synchronized(worklist) {
-					worklist.addLast(v);
-					v.listed = true;
-				    }
+				    worklist.addLast(v);
 				}
 			}
 		}
@@ -172,18 +169,17 @@ class Dataflow {
 		Vertex			u;
 		Vertex			v;
 		int			i;
-		LinkedList<Vertex>	worklist;
+		WorkList	worklist;
 		long			begin;
 		long			end;
 
 		System.out.println("computing liveness...");
 
 		begin = System.nanoTime();
-		worklist = new LinkedList<Vertex>();
+		worklist = new WorkList();
 
 		for (i = 0; i < vertex.length; ++i) {
 			worklist.addLast(vertex[i]);
-			vertex[i].listed = true;
 		}
 
 		LinkedList<Worker> workers = new LinkedList<>();
@@ -243,24 +239,61 @@ class Dataflow {
 	}
 }
 
-class Worker extends Thread {
-    LinkedList<Vertex> worklist;
+class WorkList {
+    LinkedList<Vertex> wl;
+    int active;
 
-    public Worker(LinkedList<Vertex> worklist) {
+    public WorkList() {
+	this.wl = new LinkedList<>();
+    }
+
+    public synchronized Vertex getWork() throws InterruptedException {
+	while (!wl.isEmpty() || active > 0) {
+	    if (!wl.isEmpty()) {
+		Vertex v = wl.remove();
+		v.listed = false;
+		active++;
+		return v;
+	    } else {
+		wait();
+	    }
+	}
+	return null;
+    }
+
+    public synchronized void addLast(Vertex v) {
+	wl.addLast(v);
+	v.listed = true;
+	notifyAll();
+    }
+
+    public synchronized void decActive() {
+	active--;
+	if (active == 0) {
+	    notifyAll();
+	}
+    }
+}
+
+class Worker extends Thread {
+    WorkList worklist;
+
+    public Worker(WorkList worklist) {
 	this.worklist = worklist;
     }
 
     @Override public void run() {
 	Vertex u;
-	while (true) {
-	    synchronized(worklist) {
-		if (worklist.isEmpty()) {
-		    break;
-		}
-		u = worklist.remove();
-		u.listed = false;
+	int processed = 0;
+	try {
+	    while ((u = worklist.getWork()) != null) {
+		u.computeIn(worklist);
+		worklist.decActive();
+		processed++;
 	    }
-	    u.computeIn(worklist);
+	} catch (InterruptedException e) {
+	    e.printStackTrace();
 	}
+	System.out.println("Processed " + processed + " vertices");
     }
 }
