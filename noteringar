@@ -1,0 +1,4 @@
+ * nsym har liten betydelse för tiden det tar
+ * sekventiell är snabbare då nvertex < ~100
+ * för 10000/1000 är 16-32 trådar optimalt
+ 
