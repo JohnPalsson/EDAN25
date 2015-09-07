@@ -164,7 +164,7 @@ class Dataflow {
 		}
 	}
 
-    public static void liveness(Vertex vertex[], int nthread) throws InterruptedException
+    public static void liveness(Vertex vertex[], int nthread, int nvertex) throws InterruptedException
 	{
 		Vertex			u;
 		Vertex			v;
@@ -184,6 +184,10 @@ class Dataflow {
 
 		LinkedList<Worker> workers = new LinkedList<>();
 
+		if (nvertex < 100) {
+		    nthread = 1;
+		    System.out.println("Running sequentially");
+		}
 		for (i = 0; i < nthread; ++i) {
 		    Worker w = new Worker(worklist);
 		    w.start();
@@ -231,7 +235,7 @@ class Dataflow {
 
 		generateCFG(vertex, maxsucc, r);
 		generateUseDef(vertex, nsym, nactive, r);
-		liveness(vertex, nthread);
+		liveness(vertex, nthread, nvertex);
 
 		if (print)
 			for (i = 0; i < vertex.length; ++i)
