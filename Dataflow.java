@@ -6,7 +6,7 @@ import java.util.BitSet;
 class Random {
 	int	w;
 	int	z;
-	
+
 	public Random(int seed)
 	{
 		w = seed + 1;
@@ -62,8 +62,8 @@ class Vertex {
 		// in = use U (out - def)
 
 		in = new BitSet();
-		in.or(out);	
-		in.andNot(def);	
+		in.or(out);
+		in.andNot(def);
 		in.or(use);
 
 		if (!in.equals(old)) {
@@ -128,7 +128,7 @@ class Dataflow {
 
 		connect(vertex[0], vertex[1]);
 		connect(vertex[0], vertex[2]);
-		
+
 		for (i = 2; i < vertex.length; ++i) {
 			s = (r.nextInt() % maxsucc) + 1;
 			for (j = 0; j < s; ++j) {
@@ -138,7 +138,7 @@ class Dataflow {
 		}
 	}
 
-	public static void generateUseDef(	
+	public static void generateUseDef(
 		Vertex	vertex[],
 		int	nsym,
 		int	nactive,
@@ -214,7 +214,7 @@ class Dataflow {
 		nactive = Integer.parseInt(args[3]);
 		nthread = Integer.parseInt(args[4]);
 		print = Integer.parseInt(args[5]) != 0;
-	
+
 		System.out.println("nsym = " + nsym);
 		System.out.println("nvertex = " + nvertex);
 		System.out.println("maxsucc = " + maxsucc);
