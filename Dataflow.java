@@ -184,7 +184,7 @@ class Dataflow {
 
 		LinkedList<Worker> workers = new LinkedList<>();
 
-		if (nvertex < 100) {
+		if (nvertex <= 100) {
 		    nthread = 1;
 		    System.out.println("Running sequentially");
 		}
