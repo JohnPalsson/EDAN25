@@ -4,12 +4,17 @@ MAXSUCC	= 4
 NACTIVE	= 100
 PRINT   = 1
 
-all:
+all: compile run
+
+compile:
 	@mkdir -p classes
-	#scalac -g:vars -d classes dataflow.scala
-	#scalac -deprecation -d classes dataflow.scala
+#	scalac -g:vars -d classes dataflow.scala
+#	scalac -deprecation -d classes dataflow.scala
 	scalac -deprecation -optimise -d classes dataflow.scala
-	scala -classpath classes Driver $(NSYM) $(NVERTEX) $(MAXSUCC) $(NACTIVE) $(PRINT)
 
 run:
 	scala -classpath classes Driver $(NSYM) $(NVERTEX) $(MAXSUCC) $(NACTIVE) $(PRINT)
+
+test:
+	scala -classpath classes Driver $(NSYM) $(NVERTEX) $(MAXSUCC) $(NACTIVE) $(PRINT) > test.log
+	diff -u ../lab1/correct test.log
