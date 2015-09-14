@@ -9,6 +9,9 @@ case class Ready();
 case class Go();
 case class Change(in: BitSet);
 
+case class Work()
+case class Break()
+
 class Random(seed: Int) {
         var w = seed + 1;
         var z = seed * seed + seed + 2;
@@ -23,8 +26,9 @@ class Random(seed: Int) {
 }
 
 class Controller(val cfg: Array[Vertex]) extends Actor {
-  var started = 0;
-  val begin   = System.currentTimeMillis();
+  var started = 0
+  val begin   = System.currentTimeMillis()
+  var working = 0
 
   // LAB 2: The controller must figure out when
   //        to terminate all actors somehow.
@@ -32,13 +36,31 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
   def act() {
     react {
       case Ready() => {
-        started += 1;
+        started += 1
         //println("controller has seen " + started);
         if (started == cfg.length) {
           for (u <- cfg)
-            u ! new Go;
+            u ! new Go
         }
-        act();
+        act()
+      }
+      case Work() => {
+	working += 1
+	act()
+      }
+      case Break() => {
+	working -= 1
+	if (working > 0) {
+	  act()
+	} else {
+	  Thread.sleep(10000)
+	  println("Stopping")
+	  for (u <- cfg) {
+	    u ! new Stop
+	  }
+	  for (v <- cfg)
+            v.print
+	}
       }
     }
   }
@@ -69,12 +91,39 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
 
       case Go() => {
         // LAB 2: Start working with this vertex.
-        act();
+	controller ! new Work
+	computeIn(new BitSet())
+	controller ! new Break
+        act()
+      }
+
+      case Change(in: BitSet) => {
+	controller ! new Work
+	computeIn(in)
+	controller ! new Break
+	act()
       }
 
       case Stop()  => { }
     }
   }
+
+  def computeIn(succIn: BitSet) = {
+    out.or(succIn)
+
+    val old = in
+
+    in = new BitSet(s)
+    in.or(out)
+    in.andNot(defs)
+    in.or(uses)
+
+    if (in != old) {
+      for (v <- pred) {
+	v ! new Change(in)
+      }
+    }
+   }
 
   def printSet(name: String, index: Int, set: BitSet) {
     System.out.print(name + "[" + index + "] = { ");
@@ -88,6 +137,7 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
     printSet("use", index, uses);
     printSet("def", index, defs);
     printSet("in", index, in);
+    printSet("out", index, out)
     println("");
   }
 }
@@ -157,8 +207,8 @@ object Driver {
     for (i <- 0 until nvertex)
       cfg(i) ! new Start;
 
-    if (print != 0)
-      for (i <- 0 until nvertex)
-        cfg(i).print;
+    // if (print != 0)
+    //   for (i <- 0 until nvertex)
+    //     cfg(i).print;
   }
 }
