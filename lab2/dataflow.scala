@@ -54,7 +54,7 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
 	  act()
 	} else {
 	  Thread.sleep(10000)
-	  println("Stopping")
+	  //println("Stopping")
 	  for (u <- cfg) {
 	    u ! new Stop
 	  }
@@ -191,15 +191,15 @@ object Driver {
 
     controller.start;
 
-    println("generating CFG...");
+    //println("generating CFG...");
     for (i <- 0 until nvertex)
       cfg(i) = new Vertex(i, nsym, controller);
 
     makeCFG(cfg);
-    println("generating usedefs...");
+    //println("generating usedefs...");
     makeUseDef(cfg);
 
-    println("starting " + nvertex + " actors...");
+    //println("starting " + nvertex + " actors...");
 
     for (i <- 0 until nvertex)
       cfg(i).start;
