@@ -53,8 +53,6 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
 	if (working > 0) {
 	  act()
 	} else {
-	  Thread.sleep(10000)
-	  //println("Stopping")
 	  for (u <- cfg) {
 	    u ! new Stop
 	  }
