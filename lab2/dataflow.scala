@@ -8,7 +8,7 @@ case class Stop();
 case class Ready();
 case class Go();
 case class Change(in: BitSet);
-
+case class ChangeReq(in: BitSet, v: Vertex)
 case class Work()
 case class Break()
 
@@ -48,6 +48,11 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
 	working += 1
         //println("Work; working = " + working)
 	act()
+      }
+      case ChangeReq(in: BitSet, v: Vertex) => {
+        working += 1
+        v ! new Change(in)
+        act()
       }
       case Break() => {
 	working -= 1
@@ -119,8 +124,7 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
 
     if (in != old) {
       for (v <- pred) {
-	v ! new Change(in)
-        controller ! new Work
+	controller ! new ChangeReq(in, v)
       }
     }
    }
