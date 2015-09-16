@@ -43,7 +43,7 @@ class Vertex {
 		def	= new BitSet();
 	}
 
-	void computeIn(WorkList worklist)
+	void computeIn(LinkedList<Vertex> worklist)
 	{
 		int			i;
 		BitSet			old;
@@ -72,7 +72,8 @@ class Vertex {
 			while (iter.hasNext()) {
 				v = iter.next();
 				if (!v.listed) {
-				    worklist.addLast(v);
+					worklist.addLast(v);
+					v.listed = true;
 				}
 			}
 		}
@@ -91,7 +92,7 @@ class Vertex {
 		for (i = 0; i < def.size(); ++i)
 			if (def.get(i))
 				System.out.print("" + i + " ");
-		System.out.println("}\n");
+		System.out.println("}");
 
 		System.out.print("in[" + index + "] = { ");
 		for (i = 0; i < in.size(); ++i)
@@ -108,7 +109,7 @@ class Vertex {
 
 }
 
-class Dataflow {
+class Seq {
 
 	public static void connect(Vertex pred, Vertex succ)
 	{
@@ -164,45 +165,36 @@ class Dataflow {
 		}
 	}
 
-    public static void liveness(Vertex vertex[], int nthread, int nvertex) throws InterruptedException
+	public static void liveness(Vertex vertex[])
 	{
 		Vertex			u;
 		Vertex			v;
 		int			i;
-		WorkList	worklist;
+		LinkedList<Vertex>	worklist;
 		long			begin;
 		long			end;
 
 		System.out.println("computing liveness...");
 
 		begin = System.nanoTime();
-		worklist = new WorkList();
+		worklist = new LinkedList<Vertex>();
 
 		for (i = 0; i < vertex.length; ++i) {
 			worklist.addLast(vertex[i]);
+			vertex[i].listed = true;
 		}
 
-		LinkedList<Worker> workers = new LinkedList<>();
-
-		if (nvertex <= 100) {
-		    nthread = 1;
-		    System.out.println("Running sequentially");
+		while (!worklist.isEmpty()) {
+			u = worklist.remove();
+			u.listed = false;
+			u.computeIn(worklist);
 		}
-		for (i = 0; i < nthread; ++i) {
-		    Worker w = new Worker(worklist);
-		    w.start();
-		    workers.add(w);
-		}
-		for (Worker w : workers) {
-		    w.join();
-		}
-
 		end = System.nanoTime();
 
 		System.out.println("T = " + (end-begin)/1e9 + " s");
 	}
 
-	public static void main(String[] args) throws InterruptedException
+	public static void main(String[] args)
 	{
 		int	i;
 		int	nsym;
@@ -235,69 +227,10 @@ class Dataflow {
 
 		generateCFG(vertex, maxsucc, r);
 		generateUseDef(vertex, nsym, nactive, r);
-		liveness(vertex, nthread, nvertex);
+		liveness(vertex);
 
 		if (print)
 			for (i = 0; i < vertex.length; ++i)
 				vertex[i].print();
 	}
-}
-
-class WorkList {
-    LinkedList<Vertex> wl;
-    int active;
-
-    public WorkList() {
-	this.wl = new LinkedList<>();
-    }
-
-    public synchronized Vertex getWork() throws InterruptedException {
-	while (!wl.isEmpty() || active > 0) {
-	    if (!wl.isEmpty()) {
-		Vertex v = wl.remove();
-		v.listed = false;
-		active++;
-		return v;
-	    } else {
-		wait();
-	    }
-	}
-	return null;
-    }
-
-    public synchronized void addLast(Vertex v) {
-	wl.addLast(v);
-	v.listed = true;
-	notifyAll();
-    }
-
-    public synchronized void decActive() {
-	active--;
-	if (active == 0) {
-	    notifyAll();
-	}
-    }
-}
-
-class Worker extends Thread {
-    WorkList worklist;
-
-    public Worker(WorkList worklist) {
-	this.worklist = worklist;
-    }
-
-    @Override public void run() {
-	Vertex u;
-	int processed = 0;
-	try {
-	    while ((u = worklist.getWork()) != null) {
-		u.computeIn(worklist);
-		worklist.decActive();
-		processed++;
-	    }
-	} catch (InterruptedException e) {
-	    e.printStackTrace();
-	}
-	System.out.println("Processed " + processed + " vertices");
-    }
 }
