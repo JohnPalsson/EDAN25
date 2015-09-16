@@ -46,10 +46,12 @@ class Controller(val cfg: Array[Vertex]) extends Actor {
       }
       case Work() => {
 	working += 1
+        //println("Work; working = " + working)
 	act()
       }
       case Break() => {
 	working -= 1
+        //println("Break; working = " + working)
 	if (working > 0) {
 	  act()
 	} else {
@@ -96,7 +98,6 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
       }
 
       case Change(in: BitSet) => {
-	controller ! new Work
 	computeIn(in)
 	controller ! new Break
 	act()
@@ -119,6 +120,7 @@ class Vertex(val index: Int, s: Int, val controller: Controller) extends Actor {
     if (in != old) {
       for (v <- pred) {
 	v ! new Change(in)
+        controller ! new Work
       }
     }
    }
