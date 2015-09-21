@@ -21,10 +21,13 @@ struct sorting_args {
 
 static double sec(void)
 {
-	struct tms buf;
-	times(&buf);
-	long clocks_per_sec = sysconf(_SC_CLK_TCK);
-	return (double) buf.tms_utime / clocks_per_sec;
+	struct timespec ts;
+	int err = clock_gettime(CLOCK_MONOTONIC, &ts);
+	if (err) {
+		perror("Failed to get time");
+		exit(1);
+	}
+	return ts.tv_sec + ts.tv_nsec / 1e9;
 }
 
 void merge(double *base, size_t n)
@@ -52,16 +55,27 @@ void merge(double *base, size_t n)
 	free(unsorted);
 }
 
-void par_sort(struct sorting_args a)
+void *par_sort(void *ap)
 {
-	if (a.threads > 1) {
-		struct sorting_args a1 = {a.base, a.n/2, a.s, a.cmp, a.threads/2};
-		struct sorting_args a2 = {a.base + a.n*a.s/2, (a.n-a.n/2), a.s, a.cmp, a.threads/2};
-		par_sort(a1);
-		par_sort(a2);
-		merge(a.base, a.n);
+	struct sorting_args *a = ap;
+	if (a->threads > 1) {
+		struct sorting_args a1 = {a->base, a->n/2, a->s, a->cmp, a->threads/2};
+		struct sorting_args a2 = {a->base + a->n*a->s/2, (a->n-a->n/2), a->s, a->cmp, a->threads/2};
+		pthread_t t;
+		int err = pthread_create(&t, NULL, par_sort, &a1);
+		if (err) {
+			perror("Failed to create thread");
+			exit(1);
+		}
+		par_sort(&a2);
+		err = pthread_join(t, NULL);
+		if (err) {
+			perror("Failed to join thread");
+			exit(1);
+		}
+		merge(a->base, a->n);
 	} else {
-		qsort(a.base, a.n, a.s, a.cmp);
+		qsort(a->base, a->n, a->s, a->cmp);
 	}
 }
 
@@ -88,15 +102,11 @@ int main(int ac, char** av)
 	for (i = 0; i < n; i++)
 		a[i] = rand();
 
-	/* for (i = 0; i < n; ++i) */
-	/* 	printf("%lf\n", a[i]); */
-	/* printf("\n"); */
-
 	start = sec();
 
 #ifdef PARALLEL
 	struct sorting_args sa = {a, n, sizeof a[0], cmp, MAX_THREADS};
-	par_sort(sa);
+	par_sort(&sa);
 #else
 	qsort(a, n, sizeof a[0], cmp);
 #endif
@@ -104,11 +114,9 @@ int main(int ac, char** av)
 	end = sec();
 
 	for (i = 0; i < n-1; ++i) {
-		//printf("%lf\n", a[i]);
 		int res = a[i] <= a[i+1];
 		assert(res);
 	}
-	//printf("%lf\n", a[n-1]);
 
 	printf("%1.2f s\n", end - start);
 
