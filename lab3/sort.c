@@ -22,10 +22,10 @@ void par_sort(
 }
 
 static int cmp(const void* ap, const void* bp)
-{	
+{
 	/* you need to modify this function to compare doubles. */
 
-	return 0; 
+	return 0;
 }
 
 int main(int ac, char** av)
