@@ -11,6 +11,14 @@
 
 #define MAX_THREADS 4
 
+struct sorting_args {
+	void *base; // Array to sort.
+	size_t n; // Number of elements in base.
+	size_t s; // Size of each element.
+	int (*cmp)(const void*, const void*); // Behaves like strcmp
+	int threads;
+};
+
 static double sec(void)
 {
 	struct tms buf;
@@ -44,19 +52,16 @@ void merge(double *base, size_t n)
 	free(unsorted);
 }
 
-void par_sort(
-	void*		base,	// Array to sort.
-	size_t		n,	// Number of elements in base.
-	size_t		s,	// Size of each element.
-	int		(*cmp)(const void*, const void*), // Behaves like strcmp
-	int threads)
+void par_sort(struct sorting_args a)
 {
-	if (threads > 1) {
-		par_sort(base, n/2, s, cmp, threads/2);
-		par_sort(base + n*s/2, (n-n/2), s, cmp, threads/2);
-		merge(base, n);
+	if (a.threads > 1) {
+		struct sorting_args a1 = {a.base, a.n/2, a.s, a.cmp, a.threads/2};
+		struct sorting_args a2 = {a.base + a.n*a.s/2, (a.n-a.n/2), a.s, a.cmp, a.threads/2};
+		par_sort(a1);
+		par_sort(a2);
+		merge(a.base, a.n);
 	} else {
-		qsort(base, n, s, cmp);
+		qsort(a.base, a.n, a.s, a.cmp);
 	}
 }
 
@@ -90,7 +95,8 @@ int main(int ac, char** av)
 	start = sec();
 
 #ifdef PARALLEL
-	par_sort(a, n, sizeof a[0], cmp, MAX_THREADS);
+	struct sorting_args sa = {a, n, sizeof a[0], cmp, MAX_THREADS};
+	par_sort(sa);
 #else
 	qsort(a, n, sizeof a[0], cmp);
 #endif
