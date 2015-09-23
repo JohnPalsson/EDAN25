@@ -19,6 +19,12 @@ struct sorting_args {
 	int threads;
 };
 
+struct quick_args {
+    double *A;
+    int lo;
+    int hi;
+};
+
 static double sec(void)
 {
 	struct timespec ts;
@@ -53,6 +59,44 @@ void merge(double *base, size_t n)
 		++dp;
 	}
 	free(unsorted);
+}
+
+int partition(double *A, int lo, int hi)
+{
+    double pivot = A[hi];
+    int i = lo - 1;
+    int j = hi + 1;
+    while (1) {
+        do {
+            j--;
+        } while (A[j] > pivot);
+        do {
+            i++;
+        } while (A[i] < pivot);
+        if (i < j) {
+            double tmp = A[i];
+            A[i] = A[j];
+            A[j] = tmp;
+        } else {
+            return j;
+        }
+    }
+}
+
+void *quick(void *ap)
+{
+    struct quick_args *a = ap;
+    double *A = a->A;
+    int lo = a->lo;
+    int hi = a->hi;
+    if (lo < hi) {
+        int p = partition(A, lo, hi);
+        struct quick_args a1 = {A, lo, p};
+        quick(&a1);
+        struct quick_args a2 = {A, p + 1, hi};
+        quick(&a2);
+    }
+    return NULL;
 }
 
 void *par_sort(void *ap)
@@ -108,7 +152,9 @@ int main(int ac, char** av)
 	struct sorting_args sa = {a, n, sizeof a[0], cmp, MAX_THREADS};
 	par_sort(&sa);
 #else
-	qsort(a, n, sizeof a[0], cmp);
+	//qsort(a, n, sizeof a[0], cmp);
+    struct quick_args sa = {a, 0, n-1};
+    quick(sa);
 #endif
 
 	end = sec();
