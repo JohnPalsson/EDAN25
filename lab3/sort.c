@@ -63,7 +63,7 @@ void merge(double *base, size_t n)
 
 int partition(double *A, int lo, int hi)
 {
-    double pivot = A[hi];
+    double pivot = A[lo];
     int i = lo - 1;
     int j = hi + 1;
     while (1) {
@@ -160,7 +160,7 @@ int main(int ac, char** av)
 #else
 	//qsort(a, n, sizeof a[0], cmp);
     struct quick_args sa = {a, 0, n-1};
-    quick(sa);
+    quick(&sa);
 #endif
 
 	end = sec();
