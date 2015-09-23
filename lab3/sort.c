@@ -11,14 +11,6 @@
 
 #define MAX_THREADS 8
 
-struct sorting_args {
-	void *base; // Array to sort.
-	size_t n; // Number of elements in base.
-	size_t s; // Size of each element.
-	int (*cmp)(const void*, const void*); // Behaves like strcmp
-	int threads;
-};
-
 struct quick_args {
     double *A;
     int lo;
@@ -36,31 +28,6 @@ static double sec(void)
 		exit(1);
 	}
 	return ts.tv_sec + ts.tv_nsec / 1e9;
-}
-
-void merge(double *base, size_t n)
-{
-	double *ap, *bp, *dp;
-	double *unsorted = malloc(n * sizeof(double));
-	if (unsorted == NULL) {
-		fprintf(stderr, "malloc failed\n");
-		exit(1);
-	}
-	memcpy(unsorted, base, n * sizeof(double));
-	ap = unsorted;
-	bp = unsorted + n/2;
-	dp = base;
-	while (dp < base + n) {
-		if (*ap < *bp && ap < unsorted + n/2 || bp == unsorted + n) {
-			*dp = *ap;
-			++ap;
-		} else {
-			*dp = *bp;
-			++bp;
-		}
-		++dp;
-	}
-	free(unsorted);
 }
 
 int partition(double *A, int lo, int hi)
@@ -108,36 +75,14 @@ void *quick(void *ap)
         struct quick_args a2 = {A, p + 1, hi, NULL, threads/2};
         quick(&a2);
 	if (threads > 1) {
-	    pthread_join(t, NULL);
+	    int err = pthread_join(t, NULL);
+	    if (err) {
+		perror("Failed to join thread");
+		exit(1);
+	    }
+
 	}
     }
-    return NULL;
-}
-
-void *par_sort(void *ap)
-{
-	struct sorting_args *a = ap;
-	if (a->threads > 1) {
-        int pivot = partition(a->base, 0, a->n-1);
-        //printf("Pivot: %d=%lf\n", pivot, ((double *)a->base)[pivot]);
-		struct sorting_args a1 = {a->base, pivot+1, a->s, a->cmp, a->threads/2};
-		struct sorting_args a2 = {a->base + (pivot+1)*a->s, (a->n-(pivot+1)), a->s, a->cmp, a->threads/2};
-		pthread_t t;
-		int err = pthread_create(&t, NULL, par_sort, &a1);
-		if (err) {
-			perror("Failed to create thread");
-			exit(1);
-		}
-		par_sort(&a2);
-		err = pthread_join(t, NULL);
-		if (err) {
-			perror("Failed to join thread");
-			exit(1);
-		}
-		//merge(a->base, a->n);
-	} else {
-		qsort(a->base, a->n, a->s, a->cmp);
-	}
     return NULL;
 }
 
@@ -170,12 +115,10 @@ int main(int ac, char** av)
 	start = sec();
 
 #ifdef PARALLEL
-	struct sorting_args sa = {a, n, sizeof a[0], cmp, MAX_THREADS};
-	par_sort(&sa);
-#else
-	//qsort(a, n, sizeof a[0], cmp);
 	struct quick_args sa = {a, 0, n-1, NULL, MAX_THREADS};
-    quick(&sa);
+	quick(&sa);
+#else
+	qsort(a, n, sizeof a[0], cmp);
 #endif
 
 	end = sec();
