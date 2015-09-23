@@ -23,6 +23,8 @@ struct quick_args {
     double *A;
     int lo;
     int hi;
+    int (*cmp)(const void*, const void*);
+    int threads;
 };
 
 static double sec(void)
@@ -89,12 +91,25 @@ void *quick(void *ap)
     double *A = a->A;
     int lo = a->lo;
     int hi = a->hi;
+    int threads = a->threads;
     if (lo < hi) {
         int p = partition(A, lo, hi);
-        struct quick_args a1 = {A, lo, p};
-        quick(&a1);
-        struct quick_args a2 = {A, p + 1, hi};
+        struct quick_args a1 = {A, lo, p, NULL, threads/2};
+	pthread_t t;
+	if (threads > 1) {
+	    int err = pthread_create(&t, NULL, quick, &a1);
+	    if (err) {
+		perror("Failed to create thread");
+		exit(1);
+	    }
+	} else {
+	    quick(&a1);
+	}
+        struct quick_args a2 = {A, p + 1, hi, NULL, threads/2};
         quick(&a2);
+	if (threads > 1) {
+	    pthread_join(t, NULL);
+	}
     }
     return NULL;
 }
@@ -159,7 +174,7 @@ int main(int ac, char** av)
 	par_sort(&sa);
 #else
 	//qsort(a, n, sizeof a[0], cmp);
-    struct quick_args sa = {a, 0, n-1};
+	struct quick_args sa = {a, 0, n-1, NULL, MAX_THREADS};
     quick(&sa);
 #endif
 
