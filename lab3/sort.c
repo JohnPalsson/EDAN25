@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#define MAX_THREADS 4
+#define MAX_THREADS 8
 
 struct sorting_args {
 	void *base; // Array to sort.
@@ -103,8 +103,10 @@ void *par_sort(void *ap)
 {
 	struct sorting_args *a = ap;
 	if (a->threads > 1) {
-		struct sorting_args a1 = {a->base, a->n/2, a->s, a->cmp, a->threads/2};
-		struct sorting_args a2 = {a->base + a->n*a->s/2, (a->n-a->n/2), a->s, a->cmp, a->threads/2};
+        int pivot = partition(a->base, 0, a->n-1);
+        //printf("Pivot: %d=%lf\n", pivot, ((double *)a->base)[pivot]);
+		struct sorting_args a1 = {a->base, pivot+1, a->s, a->cmp, a->threads/2};
+		struct sorting_args a2 = {a->base + (pivot+1)*a->s, (a->n-(pivot+1)), a->s, a->cmp, a->threads/2};
 		pthread_t t;
 		int err = pthread_create(&t, NULL, par_sort, &a1);
 		if (err) {
@@ -117,10 +119,11 @@ void *par_sort(void *ap)
 			perror("Failed to join thread");
 			exit(1);
 		}
-		merge(a->base, a->n);
+		//merge(a->base, a->n);
 	} else {
 		qsort(a->base, a->n, a->s, a->cmp);
 	}
+    return NULL;
 }
 
 static int cmp(const void* ap, const void* bp)
@@ -143,8 +146,11 @@ int main(int ac, char** av)
 	srand(getpid());
 
 	a = malloc(n * sizeof a[0]);
-	for (i = 0; i < n; i++)
+	for (i = 0; i < n; i++) {
 		a[i] = rand();
+        //printf("%lf\n", a[i]);
+    }
+    printf("\n");
 
 	start = sec();
 
@@ -158,6 +164,10 @@ int main(int ac, char** av)
 #endif
 
 	end = sec();
+
+    for (i = 0; i < n; ++i) {
+        //printf("%lf\n", a[i]);
+    }
 
 	for (i = 0; i < n-1; ++i) {
 		int res = a[i] <= a[i+1];
