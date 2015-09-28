@@ -20,7 +20,10 @@ P=0
 
 all: $(OBJS)	
 	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $(OUT)
-	#valgrind --tool=helgrind ./$(OUT) $(S) $(V) $(U) $(A) $(T) $(P) $(L)
+#	valgrind --tool=helgrind ./$(OUT) $(S) $(V) $(U) $(A) $(T) $(P) $(L)
+#	./$(OUT) $(S) $(V) $(U) $(A) $(T) $(P)
+
+test:
 	./$(OUT) $(S) $(V) $(U) $(A) $(T) $(P)
 
 clean:

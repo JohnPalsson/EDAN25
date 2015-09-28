@@ -9,6 +9,8 @@
 #include "list.h"
 #include "set.h"
 
+#define NTHREADS 4
+
 typedef struct vertex_t vertex_t;
 typedef struct task_t   task_t;
 
@@ -114,27 +116,17 @@ void setbit(cfg_t* cfg, size_t v, set_type_t type, size_t index)
         set(cfg->vertex[v].set[type], index);
 }
 
-void liveness(cfg_t* cfg)
+void *work(void *arg)
 {
         vertex_t*       u;
         vertex_t*       v;
         set_t*          prev;
-        size_t          i;
         size_t          j;
-        list_t*         worklist;
         list_t*         p;
         list_t*         h;
+	list_t *worklist = (list_t *) arg;
 
-        worklist = NULL;
-
-        for (i = 0; i < cfg->nvertex; ++i) {
-                u = &cfg->vertex[i];
-
-                insert_last(&worklist, u);
-                u->listed = true;
-        }
-
-        while ((u = remove_first(&worklist)) != NULL) {
+	while ((u = remove_first(&worklist)) != NULL) {
                 u->listed = false;
 
                 reset(u->set[OUT]);
@@ -163,6 +155,37 @@ void liveness(cfg_t* cfg)
                         } while (p != h);
                 }
         }
+	return NULL;
+}
+
+void liveness(cfg_t* cfg)
+{
+        vertex_t*       u;
+        size_t          i;
+        list_t*         worklist;
+	pthread_t threads[NTHREADS];
+	int err;
+
+        worklist = NULL;
+
+        for (i = 0; i < cfg->nvertex; ++i) {
+                u = &cfg->vertex[i];
+
+                insert_last(&worklist, u);
+                u->listed = true;
+        }
+
+	for (i = 0; i < NTHREADS; ++i) {
+		err = pthread_create(&threads[i], NULL, work, worklist);
+		if (err)
+			error("Failed to create thread");
+	}
+
+	for (i = 0; i < NTHREADS; ++i) {
+		err = pthread_join(threads[i], NULL);
+		if (err)
+			error("Failed to join thread");
+	}
 }
 
 void print_sets(cfg_t* cfg, FILE *fp)
