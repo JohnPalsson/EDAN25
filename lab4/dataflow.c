@@ -162,16 +162,17 @@ void liveness(cfg_t* cfg)
 {
         vertex_t*       u;
         size_t          i;
-        list_t*         worklist;
+        list_t*         worklist[NTHREADS];
 	pthread_t threads[NTHREADS];
 	int err;
-
-        worklist = NULL;
+        for (i = 0; i < NTHREADS; ++i) {
+            worklist[i] = NULL;
+        }
 
         for (i = 0; i < cfg->nvertex; ++i) {
                 u = &cfg->vertex[i];
 
-                insert_last(&worklist, u);
+                insert_last(&worklist[i%NTHREADS], u);
                 u->listed = true;
         }
 
