@@ -10,8 +10,7 @@
 #include "set.h"
 
 #define NTHREADS 4
-#define _POSIX_C_SOURCE 200112L
-#define _XOPEN_SOURCE 700
+
 typedef struct vertex_t vertex_t;
 typedef struct task_t   task_t;
 
@@ -84,10 +83,12 @@ static void init_vertex(vertex_t* v, size_t index, size_t nsymbol, size_t max_su
                 v->set[i] = new_set(nsymbol);
 
         v->prev = new_set(nsymbol);
-	int err = pthread_mutex_init(&v->mutex, NULL);
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	int err = pthread_mutex_init(&v->mutex, &attr);
 	if (err)
 		error("Failed to init mutex");
-	pthread_mutexattr_settype(&v->mutex, PTHREAD_MUTEX_RECURSIVE);
 }
 
 void free_cfg(cfg_t* cfg)

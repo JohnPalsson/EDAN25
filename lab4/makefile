@@ -1,7 +1,7 @@
 CC		= gcc
 
 #CFLAGS		= -Wall -pedantic -std=c99 -m32 -g
-CFLAGS		= -m64 -g -Wall -pedantic -Werror -std=c99
+CFLAGS		= -m64 -g -Wall -pedantic -Werror -std=c99 -D_GNU_SOURCE
 #CFLAGS		= -O3 -maltivec -Wall -pedantic -std=c99
 #CFLAGS		= -O3 -Wall -pedantic -std=c99
 
