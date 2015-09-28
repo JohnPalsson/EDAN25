@@ -1,2 +1,5 @@
 *.class
 /lab2/test.log
+*.o
+/lab4/live
+/lab4/cfg.dot
