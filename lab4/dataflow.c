@@ -10,7 +10,8 @@
 #include "set.h"
 
 #define NTHREADS 4
-
+#define _POSIX_C_SOURCE 200112L
+#define _XOPEN_SOURCE 700
 typedef struct vertex_t vertex_t;
 typedef struct task_t   task_t;
 
@@ -30,6 +31,7 @@ struct vertex_t {
         vertex_t**              succ;           /* successor vertices           */
         list_t*                 pred;           /* predecessor vertices         */
         bool                    listed;         /* on worklist                  */
+	pthread_mutex_t mutex; /* set mutex */
 };
 
 static void clean_vertex(vertex_t* v);
@@ -82,6 +84,10 @@ static void init_vertex(vertex_t* v, size_t index, size_t nsymbol, size_t max_su
                 v->set[i] = new_set(nsymbol);
 
         v->prev = new_set(nsymbol);
+	int err = pthread_mutex_init(&v->mutex, NULL);
+	if (err)
+		error("Failed to init mutex");
+	pthread_mutexattr_settype(&v->mutex, PTHREAD_MUTEX_RECURSIVE);
 }
 
 void free_cfg(cfg_t* cfg)
@@ -127,12 +133,16 @@ void *work(void *arg)
 	list_t *worklist = (list_t *) arg;
 
 	while ((u = remove_first(&worklist)) != NULL) {
+		pthread_mutex_lock(&u->mutex);
                 u->listed = false;
 
                 reset(u->set[OUT]);
 
-                for (j = 0; j < u->nsucc; ++j)
+                for (j = 0; j < u->nsucc; ++j) {
+			pthread_mutex_lock(&u->succ[j]->mutex);
                         or(u->set[OUT], u->set[OUT], u->succ[j]->set[IN]);
+			pthread_mutex_unlock(&u->succ[j]->mutex);
+		}
 
                 prev = u->prev;
                 u->prev = u->set[IN];
@@ -142,6 +152,7 @@ void *work(void *arg)
                 propagate(u->set[IN], u->set[OUT], u->set[DEF], u->set[USE]);
 
                 if (u->pred != NULL && !equal(u->prev, u->set[IN])) {
+			pthread_mutex_unlock(&u->mutex);
                         p = h = u->pred;
                         do {
                                 v = p->data;
@@ -153,7 +164,9 @@ void *work(void *arg)
                                 p = p->succ;
 
                         } while (p != h);
-                }
+                } else {
+			pthread_mutex_unlock(&u->mutex);
+		}
         }
 	return NULL;
 }
@@ -177,7 +190,7 @@ void liveness(cfg_t* cfg)
         }
 
 	for (i = 0; i < NTHREADS; ++i) {
-		err = pthread_create(&threads[i], NULL, work, worklist);
+		err = pthread_create(&threads[i], NULL, work, worklist[i]);
 		if (err)
 			error("Failed to create thread");
 	}
