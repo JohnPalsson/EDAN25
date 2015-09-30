@@ -42,7 +42,7 @@ bool equal(set_t* a, set_t* b)
 {
 	return memcmp(a->a, b->a, a->n * sizeof a->a[0]) == 0;
 }
-		
+
 void or(set_t* t, set_t* a, set_t* b)
 {
 	size_t	i;
@@ -50,7 +50,7 @@ void or(set_t* t, set_t* a, set_t* b)
 	for (i = 0; i < t->n; ++i)
 		t->a[i] = a->a[i] | b->a[i];
 }
-		
+
 void propagate(set_t* in, set_t* out, set_t* def, set_t* use)
 {
 	size_t	i;
@@ -58,7 +58,7 @@ void propagate(set_t* in, set_t* out, set_t* def, set_t* use)
 	for (i = 0; i < in->n; ++i)
 		in->a[i] = (out->a[i] & ~def->a[i]) | use->a[i];
 }
-		
+
 bool test(set_t* s, uint64_t a)
 {
 	return s->a[a / 64] & (1ULL << (a % 64));
