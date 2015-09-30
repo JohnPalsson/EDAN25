@@ -9,7 +9,7 @@
 #include "list.h"
 #include "set.h"
 
-#define NTHREADS 8
+#define NTHREADS 4
 
 typedef struct vertex_t vertex_t;
 typedef struct task_t   task_t;
@@ -241,22 +241,19 @@ void liveness(cfg_t* cfg)
 {
         vertex_t*       u;
         size_t          i;
-        queue_t*         worklist[NTHREADS];
+        queue_t*         worklist = q_new();
 	pthread_t threads[NTHREADS];
 	int err;
-        for (i = 0; i < NTHREADS; ++i) {
-		worklist[i] = q_new();
-        }
 
         for (i = 0; i < cfg->nvertex; ++i) {
                 u = &cfg->vertex[i];
 
-                q_insert(worklist[i%NTHREADS], u);
+                q_insert(worklist, u);
                 u->listed = true;
         }
 
 	for (i = 0; i < NTHREADS; ++i) {
-		err = pthread_create(&threads[i], NULL, work, worklist[i]);
+		err = pthread_create(&threads[i], NULL, work, worklist);
 		if (err)
 			error("Failed to create thread");
 	}
@@ -266,6 +263,7 @@ void liveness(cfg_t* cfg)
 		if (err)
 			error("Failed to join thread");
 	}
+	q_free(worklist);
 }
 
 void print_sets(cfg_t* cfg, FILE *fp)
