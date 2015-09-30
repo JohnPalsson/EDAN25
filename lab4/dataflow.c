@@ -136,16 +136,16 @@ void *work(void *arg)
 	while ((u = remove_first(&worklist)) != NULL) {
 		pthread_mutex_lock(&u->mutex);
                 u->listed = false;
+		pthread_mutex_unlock(&u->mutex);
 
                 reset(u->set[OUT]);
-		pthread_mutex_unlock(&u->mutex);
                 for (j = 0; j < u->nsucc; ++j) {
 			pthread_mutex_lock(&u->succ[j]->mutex);
                         or(u->set[OUT], u->set[OUT], u->succ[j]->set[IN]);
 			pthread_mutex_unlock(&u->succ[j]->mutex);
 		}
-		pthread_mutex_lock(&u->mutex);
 
+		pthread_mutex_lock(&u->mutex);
                 prev = u->prev;
                 u->prev = u->set[IN];
                 u->set[IN] = prev;
@@ -161,9 +161,11 @@ void *work(void *arg)
 				pthread_mutex_lock(&v->mutex);
                                 if (!v->listed) {
                                         v->listed = true;
+					pthread_mutex_unlock(&v->mutex);
                                         insert_last(&worklist, v);
-                                }
-				pthread_mutex_unlock(&v->mutex);
+                                } else {
+					pthread_mutex_unlock(&v->mutex);
+				}
 
                                 p = p->succ;
 
