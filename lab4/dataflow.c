@@ -9,7 +9,7 @@
 #include "list.h"
 #include "set.h"
 
-#define NTHREADS 4
+#define NTHREADS 8
 
 typedef struct vertex_t vertex_t;
 typedef struct task_t   task_t;
@@ -138,12 +138,13 @@ void *work(void *arg)
                 u->listed = false;
 
                 reset(u->set[OUT]);
-
+		pthread_mutex_unlock(&u->mutex);
                 for (j = 0; j < u->nsucc; ++j) {
 			pthread_mutex_lock(&u->succ[j]->mutex);
                         or(u->set[OUT], u->set[OUT], u->succ[j]->set[IN]);
 			pthread_mutex_unlock(&u->succ[j]->mutex);
 		}
+		pthread_mutex_lock(&u->mutex);
 
                 prev = u->prev;
                 u->prev = u->set[IN];
@@ -157,10 +158,12 @@ void *work(void *arg)
                         p = h = u->pred;
                         do {
                                 v = p->data;
+				pthread_mutex_lock(&v->mutex);
                                 if (!v->listed) {
                                         v->listed = true;
                                         insert_last(&worklist, v);
                                 }
+				pthread_mutex_unlock(&v->mutex);
 
                                 p = p->succ;
 
