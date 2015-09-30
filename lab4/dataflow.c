@@ -13,6 +13,66 @@
 
 typedef struct vertex_t vertex_t;
 typedef struct task_t   task_t;
+typedef struct queue_t queue_t;
+typedef struct queue_node_t queue_node_t;
+
+struct queue_t {
+	queue_node_t *first;
+	queue_node_t *last;
+	pthread_mutex_t insert_lock;
+	pthread_mutex_t remove_lock;
+};
+
+struct queue_node_t {
+	queue_node_t *succ;
+	vertex_t *data;
+};
+
+queue_t *q_new(void)
+{
+	queue_t *q = calloc(1, sizeof(queue_t));
+	if (!q)
+		error("Failed to allocate memory");
+	pthread_mutex_init(&q->insert_lock, NULL);
+	pthread_mutex_init(&q->remove_lock, NULL);
+	return q;
+}
+
+void q_free(queue_t *q)
+{
+	free(q);
+}
+
+void q_insert(queue_t *q, vertex_t *v)
+{
+	pthread_mutex_lock(&q->insert_lock);
+	queue_node_t *n = malloc(sizeof(*n));
+	n->succ = NULL;
+	n->data = v;
+	if (q->last)
+		q->last->succ = n;
+	else
+		q->first = n;
+	q->last = n;
+	pthread_mutex_unlock(&q->insert_lock);
+}
+
+vertex_t *q_remove(queue_t *q)
+{
+	pthread_mutex_lock(&q->remove_lock);
+	if (!q->first) {
+		pthread_mutex_unlock(&q->remove_lock);
+		return NULL;
+	}
+	queue_node_t *n = q->first;
+	vertex_t *v = n->data;
+	q->first = q->first->succ;
+	free(n);
+	if (!q->first)
+		q->last = NULL;
+	pthread_mutex_unlock(&q->remove_lock);
+	return v;
+}
 
 /* cfg_t: a control flow graph. */
 struct cfg_t {
@@ -131,9 +191,9 @@ void *work(void *arg)
         size_t          j;
         list_t*         p;
         list_t*         h;
-	list_t *worklist = (list_t *) arg;
+	queue_t *worklist = (queue_t *) arg;
 
-	while ((u = remove_first(&worklist)) != NULL) {
+	while ((u = q_remove(worklist)) != NULL) {
 		pthread_mutex_lock(&u->mutex);
                 u->listed = false;
 		pthread_mutex_unlock(&u->mutex);
@@ -162,7 +222,7 @@ void *work(void *arg)
                                 if (!v->listed) {
                                         v->listed = true;
 					pthread_mutex_unlock(&v->mutex);
-                                        insert_last(&worklist, v);
+                                        q_insert(worklist, v);
                                 } else {
 					pthread_mutex_unlock(&v->mutex);
 				}
@@ -181,17 +241,17 @@ void liveness(cfg_t* cfg)
 {
         vertex_t*       u;
         size_t          i;
-        list_t*         worklist[NTHREADS];
+        queue_t*         worklist[NTHREADS];
 	pthread_t threads[NTHREADS];
 	int err;
         for (i = 0; i < NTHREADS; ++i) {
-            worklist[i] = NULL;
+		worklist[i] = q_new();
         }
 
         for (i = 0; i < cfg->nvertex; ++i) {
                 u = &cfg->vertex[i];
 
-                insert_last(&worklist[i%NTHREADS], u);
+                q_insert(worklist[i%NTHREADS], u);
                 u->listed = true;
         }
 
