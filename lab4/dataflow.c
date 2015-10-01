@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdatomic.h>
 #include <inttypes.h>
 #include <pthread.h>
 #include "dataflow.h"
@@ -89,7 +90,7 @@ struct vertex_t {
         size_t                  nsucc;          /* number of successor vertices */
         vertex_t**              succ;           /* successor vertices           */
         list_t*                 pred;           /* predecessor vertices         */
-        bool                    listed;         /* on worklist                  */
+        _Atomic bool            listed;         /* on worklist                  */
 	pthread_mutex_t listmutex; /* set mutex */
 	pthread_mutex_t inmutex; /* set mutex */
 };
@@ -199,9 +200,9 @@ void *work(void *arg)
 	queue_t *worklist = (queue_t *) arg;
 
 	while ((u = q_remove(worklist)) != NULL) {
-		pthread_mutex_lock(&u->listmutex);
-                u->listed = false;
-		pthread_mutex_unlock(&u->listmutex);
+		// pthread_mutex_lock(&u->listmutex);
+                while(!atomic_exchange(&u->listed, false));
+		// pthread_mutex_unlock(&u->listmutex);
 
                 reset(u->set[OUT]);
                 for (j = 0; j < u->nsucc; ++j) {
@@ -223,13 +224,14 @@ void *work(void *arg)
                         p = h = u->pred;
                         do {
                                 v = p->data;
-				pthread_mutex_lock(&v->listmutex);
-                                if (!v->listed) {
+				// pthread_mutex_lock(&v->listmutex);
+																bool expected = false;
+                                if (atomic_compare_exchange_strong(&v->listed, &expected, true)) {
                                         v->listed = true;
-					pthread_mutex_unlock(&v->listmutex);
+					// pthread_mutex_unlock(&v->listmutex);
                                         q_insert(worklist, v);
                                 } else {
-					pthread_mutex_unlock(&v->listmutex);
+					// pthread_mutex_unlock(&v->listmutex);
 				}
 
                                 p = p->succ;
