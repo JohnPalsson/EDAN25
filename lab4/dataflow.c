@@ -90,7 +90,8 @@ struct vertex_t {
         vertex_t**              succ;           /* successor vertices           */
         list_t*                 pred;           /* predecessor vertices         */
         bool                    listed;         /* on worklist                  */
-	pthread_mutex_t mutex; /* set mutex */
+	pthread_mutex_t listmutex; /* set mutex */
+	pthread_mutex_t inmutex; /* set mutex */
 };
 
 static void clean_vertex(vertex_t* v);
@@ -143,10 +144,14 @@ static void init_vertex(vertex_t* v, size_t index, size_t nsymbol, size_t max_su
                 v->set[i] = new_set(nsymbol);
 
         v->prev = new_set(nsymbol);
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	int err = pthread_mutex_init(&v->mutex, &attr);
+	// pthread_mutexattr_t attr;
+	// pthread_mutexattr_init(&attr);
+	// pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	// int err = pthread_mutex_init(&v->mutex, &attr);
+	int err = pthread_mutex_init(&v->inmutex, NULL);
+	if (err)
+		error("Failed to init mutex");
+	err = pthread_mutex_init(&v->listmutex, NULL);
 	if (err)
 		error("Failed to init mutex");
 }
@@ -194,18 +199,18 @@ void *work(void *arg)
 	queue_t *worklist = (queue_t *) arg;
 
 	while ((u = q_remove(worklist)) != NULL) {
-		pthread_mutex_lock(&u->mutex);
+		pthread_mutex_lock(&u->listmutex);
                 u->listed = false;
-		pthread_mutex_unlock(&u->mutex);
+		pthread_mutex_unlock(&u->listmutex);
 
                 reset(u->set[OUT]);
                 for (j = 0; j < u->nsucc; ++j) {
-			pthread_mutex_lock(&u->succ[j]->mutex);
+			pthread_mutex_lock(&u->succ[j]->inmutex);
                         or(u->set[OUT], u->set[OUT], u->succ[j]->set[IN]);
-			pthread_mutex_unlock(&u->succ[j]->mutex);
+			pthread_mutex_unlock(&u->succ[j]->inmutex);
 		}
 
-		pthread_mutex_lock(&u->mutex);
+		pthread_mutex_lock(&u->inmutex);
                 prev = u->prev;
                 u->prev = u->set[IN];
                 u->set[IN] = prev;
@@ -214,24 +219,24 @@ void *work(void *arg)
                 propagate(u->set[IN], u->set[OUT], u->set[DEF], u->set[USE]);
 
                 if (u->pred != NULL && !equal(u->prev, u->set[IN])) {
-			pthread_mutex_unlock(&u->mutex);
+			pthread_mutex_unlock(&u->inmutex);
                         p = h = u->pred;
                         do {
                                 v = p->data;
-				pthread_mutex_lock(&v->mutex);
+				pthread_mutex_lock(&v->listmutex);
                                 if (!v->listed) {
                                         v->listed = true;
-					pthread_mutex_unlock(&v->mutex);
+					pthread_mutex_unlock(&v->listmutex);
                                         q_insert(worklist, v);
                                 } else {
-					pthread_mutex_unlock(&v->mutex);
+					pthread_mutex_unlock(&v->listmutex);
 				}
 
                                 p = p->succ;
 
                         } while (p != h);
                 } else {
-			pthread_mutex_unlock(&u->mutex);
+			pthread_mutex_unlock(&u->inmutex);
 		}
         }
 	return NULL;
