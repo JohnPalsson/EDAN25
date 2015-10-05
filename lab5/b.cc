@@ -3,6 +3,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 #include "timebase.h"
 
@@ -93,8 +94,7 @@ public:
 };
 
 static worklist_t*		worklist;
-static unsigned long long	sum;
-static std::mutex sum_mutex;
+static std::atomic<unsigned long long>	sum;
 static int			iterations;
 static int			max;
 
@@ -122,9 +122,7 @@ static void consume()
 
 	while ((n = worklist->get()) > 0) {
 		f = factorial(n);
-		sum_mutex.lock();
 		sum += f;
-		sum_mutex.unlock();
 	}
 }
 
@@ -153,7 +151,7 @@ int main(void)
 	unsigned long long	correct;
 	int			i;
 
-	printf("mutex/condvar and mutex for sum\n");
+	printf("mutex/condvar and atomic sum\n");
 
 	init_timebase();
 

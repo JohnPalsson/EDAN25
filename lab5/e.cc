@@ -3,15 +3,34 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
+#include <iostream>
 
 #include "timebase.h"
+
+class spinner {
+	std::atomic<bool> l = ATOMIC_FLAG_INIT;
+
+public:
+	void lock()
+	{
+		bool alt = false;
+		while(!atomic_compare_exchange_weak_explicit(&l, &alt, true, std::memory_order_seq_cst, std::memory_order_seq_cst))
+			;
+	}
+
+	void unlock()
+	{
+		//		std::cout << "unlock" << std::endl;
+		atomic_store_explicit(&l, false, std::memory_order_seq_cst);
+	}
+};
 
 class worklist_t {
 	int*			a;
 	size_t			n;
 	size_t			total;	// sum a[0]..a[n-1]
-	std::mutex m;
-	std::condition_variable c;
+	spinner lock;
 
 public:
 	worklist_t(size_t max)
@@ -39,11 +58,11 @@ public:
 
 	void put(int num)
 	{
-		m.lock();
+		//		std::cout << "put" << std::endl;
+		lock.lock();
 		a[num] += 1;
 		total += 1;
-		c.notify_one();
-		m.unlock();
+		lock.unlock();
 	}
 
 	int get()
@@ -51,29 +70,12 @@ public:
 		int				i;
 		int				num;
 
-#if 1
-		/* hint: if your class has a mutex m
-		 * and a condition_variable c, you
-		 * can lock it and wait for a number 
-		 * (i.e. total > 0) as follows.
-		 *
-		 */
-
-		std::unique_lock<std::mutex>	u(m);
-
-		/* the lambda is a predicate that 
-		 * returns false when waiting should 
-		 * continue.
-		 *
-		 * this mechanism will automatically
-		 * unlock the mutex m when you return
-		 * from this function. this happens when
-		 * the destructor of u is called.
-		 *
-		 */
-
-		c.wait(u, [this]() { return total > 0; } );
-#endif
+		//		std::cout << "get" << std::endl;
+		lock.lock();
+		while (total == 0) {
+			lock.unlock();
+			lock.lock();
+		}
 
 		for (i = 1; i <= n; i += 1)
 			if (a[i] > 0)
@@ -88,13 +90,13 @@ public:
 		} else
 			i = 0;
 
+		lock.unlock();
 		return i;
 	}
 };
 
 static worklist_t*		worklist;
-static unsigned long long	sum;
-static std::mutex sum_mutex;
+static std::atomic<unsigned long long>	sum;
 static int			iterations;
 static int			max;
 
@@ -122,9 +124,7 @@ static void consume()
 
 	while ((n = worklist->get()) > 0) {
 		f = factorial(n);
-		sum_mutex.lock();
-		sum += f;
-		sum_mutex.unlock();
+		sum.fetch_add(f, std::memory_order_relaxed);
 	}
 }
 
@@ -153,11 +153,11 @@ int main(void)
 	unsigned long long	correct;
 	int			i;
 
-	printf("mutex/condvar and mutex for sum\n");
+	printf("spinlock and atomic relaxed sum\n");
 
 	init_timebase();
 
-	iterations	= 100000;
+	iterations	= 1000;
 	max		= 12;
 	correct		= 0;
 
