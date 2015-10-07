@@ -33,7 +33,7 @@ queue_t *q_new(void)
 {
 	queue_t *q = calloc(1, sizeof(queue_t));
 	if (!q)
-	error("Failed to allocate memory");
+		error("Failed to allocate memory");
 	pthread_spin_init(&q->insert_lock, PTHREAD_PROCESS_SHARED);
 	pthread_spin_init(&q->remove_lock, PTHREAD_PROCESS_SHARED);
 	return q;
@@ -51,9 +51,9 @@ void q_insert(queue_t *q, vertex_t *v)
 	n->succ = NULL;
 	n->data = v;
 	if (q->last)
-	q->last->succ = n;
+		q->last->succ = n;
 	else
-	q->first = n;
+		q->first = n;
 	q->last = n;
 	pthread_spin_unlock(&q->insert_lock);
 }
@@ -70,7 +70,7 @@ vertex_t *q_remove(queue_t *q)
 	q->first = q->first->succ;
 	free(n);
 	if (!q->first)
-	q->last = NULL;
+		q->last = NULL;
 	pthread_spin_unlock(&q->remove_lock);
 	return v;
 }
@@ -105,17 +105,17 @@ cfg_t* new_cfg(size_t nvertex, size_t nsymbol, size_t max_succ)
 
 	cfg = calloc(1, sizeof(cfg_t));
 	if (cfg == NULL)
-	error("out of memory");
+		error("out of memory");
 
 	cfg->nvertex = nvertex;
 	cfg->nsymbol = nsymbol;
 
 	cfg->vertex = calloc(nvertex, sizeof(vertex_t));
 	if (cfg->vertex == NULL)
-	error("out of memory");
+		error("out of memory");
 
 	for (i = 0; i < nvertex; i += 1)
-	init_vertex(&cfg->vertex[i], i, nsymbol, max_succ);
+		init_vertex(&cfg->vertex[i], i, nsymbol, max_succ);
 
 	return cfg;
 }
@@ -125,7 +125,7 @@ static void clean_vertex(vertex_t* v)
 	int             i;
 
 	for (i = 0; i < NSETS; i += 1)
-	free_set(v->set[i]);
+		free_set(v->set[i]);
 	free_set(v->prev);
 	free(v->succ);
 	free_list(&v->pred);
@@ -139,18 +139,18 @@ static void init_vertex(vertex_t* v, size_t index, size_t nsymbol, size_t max_su
 	v->succ         = calloc(max_succ, sizeof(vertex_t*));
 
 	if (v->succ == NULL)
-	error("out of memory");
+		error("out of memory");
 
 	for (i = 0; i < NSETS; i += 1)
-	v->set[i] = new_set(nsymbol);
+		v->set[i] = new_set(nsymbol);
 
 	v->prev = new_set(nsymbol);
 	int err = pthread_spin_init(&v->inmutex, PTHREAD_PROCESS_SHARED);
 	if (err)
-	error("Failed to init mutex");
+		error("Failed to init mutex");
 	err = pthread_spin_init(&v->listmutex, PTHREAD_PROCESS_SHARED);
 	if (err)
-	error("Failed to init mutex");
+		error("Failed to init mutex");
 }
 
 void free_cfg(cfg_t* cfg)
@@ -158,7 +158,7 @@ void free_cfg(cfg_t* cfg)
 	size_t          i;
 
 	for (i = 0; i < cfg->nvertex; i += 1)
-	clean_vertex(&cfg->vertex[i]);
+		clean_vertex(&cfg->vertex[i]);
 	free(cfg->vertex);
 	free(cfg);
 }
@@ -311,13 +311,13 @@ void liveness(cfg_t* cfg)
 	for (i = 0; i < NTHREADS; ++i) {
 		err = pthread_create(&threads[i], NULL, work, worklist);
 		if (err)
-		error("Failed to create thread");
+			error("Failed to create thread");
 	}
 
 	for (i = 0; i < NTHREADS; ++i) {
 		err = pthread_join(threads[i], NULL);
 		if (err)
-		error("Failed to join thread");
+			error("Failed to join thread");
 	}
 	q_free(worklist);
 }
