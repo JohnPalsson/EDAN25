@@ -34,8 +34,8 @@ queue_t *q_new(void)
 	queue_t *q = calloc(1, sizeof(queue_t));
 	if (!q)
 		error("Failed to allocate memory");
-	pthread_spin_init(&q->insert_lock, PTHREAD_PROCESS_SHARED);
-	pthread_spin_init(&q->remove_lock, PTHREAD_PROCESS_SHARED);
+	pthread_spin_init(&q->insert_lock, PTHREAD_PROCESS_PRIVATE);
+	pthread_spin_init(&q->remove_lock, PTHREAD_PROCESS_PRIVATE);
 	return q;
 }
 
@@ -145,10 +145,10 @@ static void init_vertex(vertex_t* v, size_t index, size_t nsymbol, size_t max_su
 		v->set[i] = new_set(nsymbol);
 
 	v->prev = new_set(nsymbol);
-	int err = pthread_spin_init(&v->inmutex, PTHREAD_PROCESS_SHARED);
+	int err = pthread_spin_init(&v->inmutex, PTHREAD_PROCESS_PRIVATE);
 	if (err)
 		error("Failed to init mutex");
-	err = pthread_spin_init(&v->listmutex, PTHREAD_PROCESS_SHARED);
+	err = pthread_spin_init(&v->listmutex, PTHREAD_PROCESS_PRIVATE);
 	if (err)
 		error("Failed to init mutex");
 }
