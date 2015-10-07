@@ -42,7 +42,7 @@ public:
 		m.lock();
 		a[num] += 1;
 		total += 1;
-		c.notify_one();
+		c.notify_all();
 		m.unlock();
 	}
 

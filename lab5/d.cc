@@ -13,7 +13,7 @@ class spinner {
 public:
 	void lock()
 	{
-		while(l.test_and_set(std::memory_order_acquire))
+		while(l.test_and_set(std::memory_order_acq_rel))
 			;
 	}
 

@@ -9,20 +9,20 @@
 #include "timebase.h"
 
 class spinner {
-	std::atomic<bool> l = ATOMIC_FLAG_INIT;
+  std::atomic<bool> l;
 
 public:
 	void lock()
 	{
 		bool alt = false;
-		while(!atomic_compare_exchange_weak_explicit(&l, &alt, true, std::memory_order_seq_cst, std::memory_order_seq_cst))
-			;
+		while(!l.compare_exchange_weak(alt, true, std::memory_order_acq_rel, std::memory_order_consume))
+			alt = false;
 	}
 
 	void unlock()
 	{
 		//		std::cout << "unlock" << std::endl;
-		atomic_store_explicit(&l, false, std::memory_order_seq_cst);
+		l.store(false, std::memory_order_release);
 	}
 };
 
@@ -153,11 +153,11 @@ int main(void)
 	unsigned long long	correct;
 	int			i;
 
-	printf("spinlock and atomic relaxed sum\n");
+	printf("spinlock with explicit orderign and atomic relaxed sum\n");
 
 	init_timebase();
 
-	iterations	= 1000;
+	iterations	= 100000;
 	max		= 12;
 	correct		= 0;
 
