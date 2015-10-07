@@ -19,8 +19,6 @@ typedef struct queue_node_t queue_node_t;
 
 struct queue_t {
 	queue_node_t *first;
-	queue_node_t *last;
-	pthread_spinlock_t insert_lock;
 	pthread_spinlock_t remove_lock;
 };
 
@@ -34,7 +32,6 @@ queue_t *q_new(void)
 	queue_t *q = calloc(1, sizeof(queue_t));
 	if (!q)
 		error("Failed to allocate memory");
-	pthread_spin_init(&q->insert_lock, PTHREAD_PROCESS_PRIVATE);
 	pthread_spin_init(&q->remove_lock, PTHREAD_PROCESS_PRIVATE);
 	return q;
 }
@@ -46,16 +43,12 @@ void q_free(queue_t *q)
 
 void q_insert(queue_t *q, vertex_t *v)
 {
-	pthread_spin_lock(&q->insert_lock);
+	pthread_spin_lock(&q->remove_lock);
 	queue_node_t *n = malloc(sizeof(*n));
-	n->succ = NULL;
+	n->succ = q->first;
 	n->data = v;
-	if (q->last)
-		q->last->succ = n;
-	else
-		q->first = n;
-	q->last = n;
-	pthread_spin_unlock(&q->insert_lock);
+	q->first = n;
+	pthread_spin_unlock(&q->remove_lock);
 }
 
 vertex_t *q_remove(queue_t *q)
@@ -69,8 +62,6 @@ vertex_t *q_remove(queue_t *q)
 	vertex_t *v = n->data;
 	q->first = q->first->succ;
 	free(n);
-	if (!q->first)
-		q->last = NULL;
 	pthread_spin_unlock(&q->remove_lock);
 	return v;
 }
