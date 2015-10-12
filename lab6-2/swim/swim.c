@@ -258,9 +258,10 @@ L90:
     vcheck = 0.;
 
     i__1 = mnmin;
-    i__2 = mnmin;
 
     for (icheck = 1; icheck <= i__1; ++icheck) {
+
+	i__2 = mnmin;
 
 	for (jcheck = 1; jcheck <= i__2; ++jcheck) {
 
@@ -446,11 +447,11 @@ L370:
 
 
     i__1 = cons_1.np1;
-    i__2 = cons_1.mp1;
-
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
+
+	i__2 = cons_1.mp1;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
@@ -470,10 +471,11 @@ L370:
 
 
     i__2 = cons_1.n;
-    i__1 = cons_1.m;
 
     #pragma omp parallel for
     for (j = 1; j <= i__2; ++j) {
+
+	i__1 = cons_1.m;
 
 	for (i__ = 1; i__ <= i__1; ++i__) {
 
@@ -527,10 +529,11 @@ L370:
     _BLNK__1.v[cons_1.m] = _BLNK__1.v[(cons_1.n + 1) * 1335 - 1335];
 
     i__1 = cons_1.np1;
-    i__2 = cons_1.mp1;
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
+
+	i__2 = cons_1.mp1;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
@@ -575,10 +578,11 @@ L370:
 /* SPEC removed CCMIC$ DO GLOBAL */
 
     i__1 = cons_1.n;
-    i__2 = cons_1.m;
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
+
+	i__2 = cons_1.m;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
@@ -695,10 +699,11 @@ L370:
 /* SPEC removed CCMIC$ DO GLOBAL */
 
     i__1 = cons_1.n;
-    i__2 = cons_1.m;
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
+
+	i__2 = cons_1.m;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
@@ -737,7 +742,6 @@ L370:
 
     i__2 = cons_1.n;
 
-    // TODO: tveksam förbättring
     #pragma omp parallel for
     for (j = 1; j <= i__2; ++j) {
 
@@ -800,11 +804,11 @@ L370:
     cons_1.tdt += cons_1.tdt;
 
     i__1 = cons_1.np1;
-    i__2 = cons_1.mp1;
 
-    // TODO
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
+
+	i__2 = cons_1.mp1;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
@@ -854,11 +858,11 @@ L370:
 /* SPEC removed CCMIC$ DO GLOBAL */
 
     i__1 = cons_1.n;
-    i__2 = cons_1.m;
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
 
+	i__2 = cons_1.m;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
