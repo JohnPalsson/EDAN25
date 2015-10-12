@@ -19,7 +19,7 @@ void RadixSort::init(ComputeContext* context, ComputeBuffer* keys, ComputeBuffer
 	mSumBuffer = new ComputeInputOutputBuffer(*mContext, sizeof(int) * histogramSize / (SCAN_WORK_ITEMS * 2));
 	mSwapBuffer = new ComputeInputOutputBuffer(*mContext, sizeof(int) * (int)bufferSize);
 	mValueSwapBuffer  = new ComputeInputOutputBuffer(*mContext, sizeof(int) * (int)bufferSize);
-	
+
 	mRadixSortProgram = new ComputeProgram(*mContext, ComputeProgram::sourceFromFile("radix_sort.cl"), "");
 	mCountKernel = new ComputeKernel(*mRadixSortProgram, "radix_count");
 	mScaneKernel = new ComputeKernel(*mRadixSortProgram, "radix_scan");
@@ -33,20 +33,20 @@ void RadixSort::init(ComputeContext* context, ComputeBuffer* keys, ComputeBuffer
 void RadixSort::sort(ComputeQueue* q, unsigned keyCount) {
 	mNumberOfKeys = keyCount;
 	int histogramSize = (int)(BUCKETS *((long)mNumberOfKeys / WORK_PER_THREAD));
-	
+
 	mScaneKernel->setLocalBufferArgument(1, sizeof(cl_uint) * SCAN_WORK_ITEMS); // local buffer
-	
+
 	mScanSumKernel->setArgument(0, *mSumBuffer);
 	mScanSumKernel->setArgument(1, histogramSize / (SCAN_WORK_ITEMS * 2));
-	
-	
+
+
 	mPasteKernel->setArgument(0, *mHistogramBuffer);
 	mPasteKernel->setArgument(1, *mSumBuffer);
 	mPasteKernel->setArgument(2, (SCAN_WORK_ITEMS * 2));
-	
+
 	mReorderKernel->setArgument(2, mNumberOfKeys);
 	mReorderKernel->setArgument(3, *mHistogramBuffer);
-	
+
 	mCountKernel->setArgument(1, *mHistogramBuffer);
 	Timer t;
 #if VERBOSE
@@ -63,20 +63,20 @@ void RadixSort::sort(ComputeQueue* q, unsigned keyCount) {
 #if VERBOSE
 		t.start();
 #endif
-		
+
 		mCountKernel->setArgument(0, *mKeyBuffer);
 		mCountKernel->setArgument(2, pass);
 		globalSize = mNumberOfKeys / WORK_PER_THREAD;
 		localSize = WORK_ITEMS_COUNT;
 		q->executeKernel(*mCountKernel, 1, &globalSize, &localSize);
-		
+
 #if VERBOSE
 		q->waitForCompletion();
 		std::cout << "Pass: " << pass << std::endl;
 		std::cout << "Count: " << t.getTimeMs() << "ms\n";
 		t.start();
 #endif
-		
+
 		globalSize = histogramSize / 2;
 		localSize = SCAN_WORK_ITEMS;
 		mScaneKernel->setArgument(0, *mHistogramBuffer);
@@ -95,7 +95,7 @@ void RadixSort::sort(ComputeQueue* q, unsigned keyCount) {
 		std::cout << "Scan offsets: " << t.getTimeMs() << "ms\n";
 		t.start();
 #endif
-		
+
 		globalSize = histogramSize;
 		localSize = WORK_ITEMS_COUNT;
 		q->executeKernel(*mPasteKernel, 1, &globalSize, &localSize);

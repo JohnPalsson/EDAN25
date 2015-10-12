@@ -38,7 +38,7 @@
 #else
 // CPU Settings
 
-#if 0
+#if 1
 
 /* Using SIMD-vectorization actually slows down the program when compiled
  * by Apple's compiler!
@@ -47,7 +47,7 @@
  * by not using the following in that file:
  *	 "-cl-mad-enable -cl-auto-vectorize-disable";
  */
-	
+
 #define WORK_ITEMS_COUNT	(4)
 #else
 #define WORK_ITEMS_COUNT	(1)
@@ -55,9 +55,9 @@
 
 #define WORK_ITEMS_REORDER	(1)
 #define BITS_TO_SORT		(32)
-#define BITS_PER_PASS		(1)
+#define BITS_PER_PASS		(4)
 #define SCAN_WORK_ITEMS		(1)
-#define WORK_DIVISION		(1)
+#define WORK_DIVISION		(8)
 #define WORK_PER_THREAD		(ELEMENTS / (WORK_DIVISION))
 #endif
 #endif
