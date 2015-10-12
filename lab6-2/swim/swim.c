@@ -471,11 +471,11 @@ L370:
 
 
     i__2 = cons_1.n;
+    i__1 = cons_1.m;
 
     #pragma omp parallel for
     for (j = 1; j <= i__2; ++j) {
 
-	i__1 = cons_1.m;
 
 	for (i__ = 1; i__ <= i__1; ++i__) {
 
@@ -529,11 +529,11 @@ L370:
     _BLNK__1.v[cons_1.m] = _BLNK__1.v[(cons_1.n + 1) * 1335 - 1335];
 
     i__1 = cons_1.np1;
+	i__2 = cons_1.mp1;
+
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
-
-	i__2 = cons_1.mp1;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
@@ -578,11 +578,11 @@ L370:
 /* SPEC removed CCMIC$ DO GLOBAL */
 
     i__1 = cons_1.n;
+	i__2 = cons_1.m;
+
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
-
-	i__2 = cons_1.m;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
@@ -699,11 +699,11 @@ L370:
 /* SPEC removed CCMIC$ DO GLOBAL */
 
     i__1 = cons_1.n;
+	i__2 = cons_1.m;
+
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
-
-	i__2 = cons_1.m;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
@@ -804,11 +804,11 @@ L370:
     cons_1.tdt += cons_1.tdt;
 
     i__1 = cons_1.np1;
+	i__2 = cons_1.mp1;
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
 
-	i__2 = cons_1.mp1;
 
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
@@ -858,12 +858,10 @@ L370:
 /* SPEC removed CCMIC$ DO GLOBAL */
 
     i__1 = cons_1.n;
+    i__2 = cons_1.m;
 
     #pragma omp parallel for
     for (j = 1; j <= i__1; ++j) {
-
-	i__2 = cons_1.m;
-
 	for (i__ = 1; i__ <= i__2; ++i__) {
 
 	    _BLNK__1.uold[i__ + j * 1335 - 1336] = _BLNK__1.u[i__ + j * 1335 
